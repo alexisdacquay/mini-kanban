@@ -19,6 +19,7 @@ import {
   DEFAULT_PREFS,
   loadPrefs,
   loadTasks,
+  moveTask,
   newId,
   savePrefs,
   saveTasks,
@@ -80,21 +81,7 @@ export function Board() {
 
   /** Place `id` into `column` at position `index` among that column's cards. */
   function placeTask(id: string, column: ColumnId, index: number) {
-    setTasks((prev) => {
-      const moving = prev.find((t) => t.id === id);
-      if (!moving) return prev;
-      const rest = prev.filter((t) => t.id !== id);
-      const columnTasks = rest.filter((t) => t.column === column);
-      const updated = { ...moving, column };
-      const anchor = columnTasks[Math.max(0, Math.min(index, columnTasks.length))];
-      if (!anchor) {
-        const lastIdx = rest.reduce((acc, t, i) => (t.column === column ? i : acc), -1);
-        if (lastIdx === -1) return [...rest, updated];
-        return [...rest.slice(0, lastIdx + 1), updated, ...rest.slice(lastIdx + 1)];
-      }
-      const at = rest.indexOf(anchor);
-      return [...rest.slice(0, at), updated, ...rest.slice(at)];
-    });
+    setTasks((prev) => moveTask(prev, id, column, index));
   }
 
   function shiftColumn(task: Task, direction: -1 | 1) {
@@ -267,7 +254,8 @@ export function Board() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                if (pendingDelete) setTasks((prev) => prev.filter((t) => t.id !== pendingDelete.id));
+                if (pendingDelete)
+                  setTasks((prev) => prev.filter((t) => t.id !== pendingDelete.id));
                 setPendingDelete(null);
               }}
             >

@@ -6,6 +6,7 @@ import {
   addTaskAtTopOfTodo,
   loadPrefs,
   loadTasks,
+  moveTask,
   savePrefs,
   saveTasks,
   type Task,
@@ -103,4 +104,39 @@ test("adds a new task before the existing To Do cards and persists its position"
       .filter((task) => task.column === "todo")
       .map((task) => task.id),
   ).toEqual(["new", "second"]);
+});
+
+const orderedTasks: Task[] = [
+  { ...persistedTasks[0], id: "todo-first", column: "todo" },
+  { ...persistedTasks[0], id: "todo-second", column: "todo" },
+  { ...persistedTasks[0], id: "todo-third", column: "todo" },
+  { ...persistedTasks[0], id: "doing-first", column: "doing" },
+  { ...persistedTasks[0], id: "done-first", column: "done" },
+];
+
+function idsInColumn(tasks: Task[], column: Task["column"]) {
+  return tasks.filter((task) => task.column === column).map((task) => task.id);
+}
+
+test("moves cards to the intended upward and downward positions in a column", () => {
+  const upward = moveTask(orderedTasks, "todo-third", "todo", 0);
+  const downward = moveTask(orderedTasks, "todo-first", "todo", 2);
+
+  expect(idsInColumn(upward, "todo")).toEqual(["todo-third", "todo-first", "todo-second"]);
+  expect(idsInColumn(downward, "todo")).toEqual(["todo-second", "todo-first", "todo-third"]);
+});
+
+test("moves cards into an intended position in another fixed column", () => {
+  const moved = moveTask(orderedTasks, "todo-second", "doing", 0);
+
+  expect(idsInColumn(moved, "doing")).toEqual(["todo-second", "doing-first"]);
+  expect(idsInColumn(moved, "todo")).toEqual(["todo-first", "todo-third"]);
+});
+
+test("keeps a moved Done card and supports moving it back to an earlier column", () => {
+  const done = moveTask(orderedTasks, "todo-first", "done", 0);
+  const returned = moveTask(done, "todo-first", "doing", 1);
+
+  expect(idsInColumn(done, "done")).toEqual(["todo-first", "done-first"]);
+  expect(idsInColumn(returned, "doing")).toEqual(["doing-first", "todo-first"]);
 });

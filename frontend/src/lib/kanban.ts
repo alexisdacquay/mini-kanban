@@ -66,6 +66,35 @@ export function addTaskAtTopOfTodo(tasks: Task[], task: Task): Task[] {
   return [...tasks.slice(0, firstTodoIndex), task, ...tasks.slice(firstTodoIndex)];
 }
 
+/**
+ * Place a task at a drop position in a column. `index` is calculated before
+ * removing the task, so moving down within its current column needs one less
+ * insertion position after the task has been removed.
+ */
+export function moveTask(tasks: Task[], id: string, column: ColumnId, index: number): Task[] {
+  const moving = tasks.find((task) => task.id === id);
+  if (!moving) return tasks;
+
+  const sourceIndex = tasks.filter((task) => task.column === moving.column).indexOf(moving);
+  const rest = tasks.filter((task) => task.id !== id);
+  const columnTasks = rest.filter((task) => task.column === column);
+  const adjustedIndex = moving.column === column && sourceIndex < index ? index - 1 : index;
+  const targetIndex = Math.max(0, Math.min(adjustedIndex, columnTasks.length));
+  const updated = { ...moving, column };
+  const anchor = columnTasks[targetIndex];
+
+  if (!anchor) {
+    const lastIndex = rest.reduce((last, task, taskIndex) => {
+      return task.column === column ? taskIndex : last;
+    }, -1);
+    if (lastIndex === -1) return [...rest, updated];
+    return [...rest.slice(0, lastIndex + 1), updated, ...rest.slice(lastIndex + 1)];
+  }
+
+  const anchorIndex = rest.indexOf(anchor);
+  return [...rest.slice(0, anchorIndex), updated, ...rest.slice(anchorIndex)];
+}
+
 export function loadTasks(): Task[] {
   if (typeof window === "undefined") return [];
   try {
