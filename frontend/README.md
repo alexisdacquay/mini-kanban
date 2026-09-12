@@ -38,11 +38,21 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+This frontend uses Bun, as recorded in `bun.lock` and `bunfig.toml`.
+
+Install the locked dependencies and run the available project commands with Bun:
 
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
-npm i
-npm run dev
+cd frontend
+bun install --frozen-lockfile
+bun run dev
+```
+
+Available scripts are `dev`, `build`, `build:dev`, `preview`, `test`, `lint`, and `format`.
+Run the empty-board baseline test with:
+
+```sh
+bun run test
 ```
