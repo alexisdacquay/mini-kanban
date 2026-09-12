@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { TaskCard } from "./TaskCard";
 import { TaskDialog, type TaskDraft } from "./TaskDialog";
 import {
+  addTaskAtTopOfTodo,
   COLUMNS,
   DEFAULT_PREFS,
   loadPrefs,
@@ -72,10 +73,9 @@ export function Board() {
       setTasks((prev) => prev.map((t) => (t.id === editing.id ? { ...t, ...draft } : t)));
       return;
     }
-    setTasks((prev) => [
-      ...prev,
-      { id: newId(), column: "todo", createdAt: Date.now(), ...draft },
-    ]);
+    setTasks((prev) =>
+      addTaskAtTopOfTodo(prev, { id: newId(), column: "todo", createdAt: Date.now(), ...draft }),
+    );
   }
 
   /** Place `id` into `column` at position `index` among that column's cards. */

@@ -3,6 +3,7 @@ import {
   DEFAULT_PREFS,
   PREFS_KEY,
   TASKS_KEY,
+  addTaskAtTopOfTodo,
   loadPrefs,
   loadTasks,
   savePrefs,
@@ -79,4 +80,27 @@ test("falls back to defaults when saved browser state is malformed or incompatib
 
   expect(loadTasks()).toEqual([]);
   expect(loadPrefs()).toEqual(DEFAULT_PREFS);
+});
+
+test("adds a new task before the existing To Do cards and persists its position", () => {
+  const storage = useStorage();
+  const newTask: Task = {
+    id: "new",
+    title: "Newest To Do task",
+    description: "",
+    priority: "medium",
+    dueDate: null,
+    column: "todo",
+    createdAt: 3,
+  };
+
+  const updatedTasks = addTaskAtTopOfTodo(persistedTasks, newTask);
+  saveTasks(updatedTasks);
+
+  expect(updatedTasks.map((task) => task.id)).toEqual(["first", "new", "second"]);
+  expect(
+    loadTasks()
+      .filter((task) => task.column === "todo")
+      .map((task) => task.id),
+  ).toEqual(["new", "second"]);
 });

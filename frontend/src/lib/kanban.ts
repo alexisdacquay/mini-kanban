@@ -56,6 +56,16 @@ export function newId() {
   return `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Insert a newly created card before the current first To Do card without
+ * disturbing the relative order of cards in any column.
+ */
+export function addTaskAtTopOfTodo(tasks: Task[], task: Task): Task[] {
+  const firstTodoIndex = tasks.findIndex((candidate) => candidate.column === "todo");
+  if (firstTodoIndex === -1) return [...tasks, task];
+  return [...tasks.slice(0, firstTodoIndex), task, ...tasks.slice(firstTodoIndex)];
+}
+
 export function loadTasks(): Task[] {
   if (typeof window === "undefined") return [];
   try {
