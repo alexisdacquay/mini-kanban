@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini Kanban — Palette comparison</title>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: dark;
+      background: #07101d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1740px;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(52, 78, 118, .35), transparent 42%),
+        #07101d;
+      color: #eef2f8;
+    }
+
+    .page {
+      width: 1740px;
+      margin: 0 auto;
+      padding: 30px 28px 38px;
+    }
+
+    .intro {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      margin: 0 4px 22px;
+    }
+
+    .eyebrow,
+    .spec,
+    .brand,
+    .board-id,
+    .column-title,
+    .column-count,
+    .priority,
+    .due,
+    .move,
+    .palette-label,
+    .palette-note,
+    .add-task {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      text-transform: uppercase;
+      letter-spacing: .095em;
+    }
+
+    .eyebrow {
+      color: #e6b82b;
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    h1 {
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -.03em;
+      margin: 0;
+    }
+
+    .spec {
+      color: #8e9bb0;
+      font-size: 10px;
+      line-height: 1.55;
+      text-align: right;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .concept {
+      --canvas: #f4ebd7;
+      --well: #fff8e9;
+      --card: #fffcf3;
+      --card-raised: #fffdf6;
+      --ink: #122039;
+      --muted: #697080;
+      --line: #24344f;
+      --line-soft: rgba(36, 52, 79, .18);
+      --accent: #e4a817;
+      --accent-2: #f5d778;
+      --button-ink: #122039;
+      --shadow: rgba(25, 36, 53, .25);
+      position: relative;
+      overflow: hidden;
+      min-height: 850px;
+      border: 1px solid rgba(255,255,255,.13);
+      background: var(--canvas);
+      color: var(--ink);
+      box-shadow: 0 16px 38px rgba(0,0,0,.28);
+    }
+
+    .concept-b {
+      --canvas: #0d182a;
+      --well: #152239;
+      --card: #f5ecd8;
+      --card-raised: #fff8e8;
+      --ink: #172239;
+      --shell-ink: #f5ecd8;
+      --muted: #74746c;
+      --shell-muted: #9ba8b9;
+      --line: #2b3a52;
+      --line-soft: rgba(245, 236, 216, .13);
+      --accent: #e0ad21;
+      --accent-2: #f5c443;
+      --button-ink: #0d182a;
+      --shadow: rgba(0,0,0,.42);
+    }
+
+    .concept-c {
+      --canvas: #080706;
+      --well: #100c09;
+      --card: #17100c;
+      --card-raised: #1d130d;
+      --ink: #ff8126;
+      --shell-ink: #ff8126;
+      --muted: #a64b18;
+      --shell-muted: #a64b18;
+      --line: #71300f;
+      --line-soft: rgba(255, 129, 38, .18);
+      --accent: #ff8126;
+      --accent-2: #ffb15c;
+      --button-ink: #080706;
+      --shadow: rgba(255, 85, 0, .08);
+    }
+
+    .concept::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 96px;
+      pointer-events: none;
+      opacity: .22;
+      background-image:
+        linear-gradient(90deg, transparent 75%, var(--accent) 75%),
+        linear-gradient(0deg, transparent 75%, var(--accent) 75%);
+      background-size: 8px 8px;
+      mask-image: linear-gradient(to bottom, #000, transparent 85%);
+    }
+
+    .concept-c::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .16;
+      background: repeating-linear-gradient(to bottom, transparent 0 4px, rgba(255,129,38,.12) 4px 5px);
+    }
+
+    .palette-label {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 17px;
+      min-height: 43px;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--shell-ink, var(--ink));
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .palette-name { font-size: 12px; }
+    .palette-note { opacity: .62; font-size: 8px; }
+
+    .app-header {
+      position: relative;
+      z-index: 1;
+      min-height: 82px;
+      padding: 18px 17px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--shell-ink, var(--ink));
+    }
+
+    .brand {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .brand-mark {
+      display: inline-grid;
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+      place-items: center;
+      background: var(--accent);
+      color: var(--button-ink);
+      clip-path: polygon(25% 0, 75% 0, 75% 12%, 100% 12%, 100% 88%, 75% 88%, 75% 100%, 25% 100%, 25% 88%, 0 88%, 0 12%, 25% 12%);
+      font-size: 12px;
+      vertical-align: -2px;
+    }
+
+    .board-id {
+      margin-top: 6px;
+      color: var(--shell-muted, var(--muted));
+      font-size: 8px;
+    }
+
+    .add-task {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: var(--button-ink);
+      padding: 10px 12px;
+      font-size: 9px;
+      font-weight: 800;
+      box-shadow: 3px 3px 0 var(--line);
+      clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+      padding: 14px 12px 18px;
+    }
+
+    .column {
+      min-width: 0;
+      min-height: 681px;
+      padding: 9px;
+      background: var(--well);
+      border: 1px solid var(--line-soft);
+    }
+
+    .column-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 35px;
+      padding: 0 2px 8px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .column-title {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--shell-ink, var(--ink));
+      font-size: 9px;
+      font-weight: 800;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .column-count {
+      display: grid;
+      width: 20px;
+      height: 20px;
+      place-items: center;
+      border: 1px solid var(--accent);
+      color: var(--shell-ink, var(--ink));
+      font-size: 8px;
+    }
+
+    .card {
+      position: relative;
+      margin-top: 10px;
+      padding: 11px 10px 10px;
+      min-height: 155px;
+      background: var(--card);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: 3px 3px 0 var(--shadow);
+    }
+
+    .card.featured {
+      background: var(--card-raised);
+      box-shadow: 3px 3px 0 var(--accent);
+    }
+
+    .card.done { opacity: .76; }
+    .card.done .card-title { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+    .drag {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 15px;
+      height: 12px;
+      opacity: .45;
+      background-image: radial-gradient(circle, currentColor 1px, transparent 1.5px);
+      background-size: 5px 5px;
+    }
+
+    .card-title {
+      margin: 0 22px 8px 0;
+      font-size: 12px;
+      line-height: 1.25;
+      letter-spacing: -.012em;
+    }
+
+    .card-copy {
+      min-height: 42px;
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 9px;
+      line-height: 1.5;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+      padding-top: 9px;
+      border-top: 1px solid var(--line-soft);
+    }
+
+    .priority,
+    .due,
+    .move {
+      font-size: 7px;
+      line-height: 1;
+    }
+
+    .priority {
+      padding: 5px 6px;
+      border: 1px solid var(--accent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      font-weight: 800;
+    }
+
+    .due {
+      color: var(--muted);
+      margin-right: auto;
+    }
+
+    .move {
+      width: 21px;
+      height: 21px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-soft);
+      color: var(--ink);
+    }
+
+    .drop-hint {
+      margin-top: 10px;
+      min-height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed var(--accent);
+      color: var(--shell-muted, var(--muted));
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 7px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      opacity: .62;
+    }
+
+    .concept-c .column,
+    .concept-c .card,
+    .concept-c .add-task {
+      box-shadow: none;
+    }
+
+    .concept-c .card-copy,
+    .concept-c .due { color: #c86222; }
+    .concept-c .card { border-color: var(--line); }
+
+    .footer-note {
+      margin: 17px 4px 0;
+      color: #8290a7;
+      font-size: 11px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="intro">
+      <div>
+        <div class="eyebrow">Visual direction study // 01</div>
+        <h1>Mini Kanban palette comparison</h1>
+      </div>
+      <div class="spec">SAME LAYOUT · SAME CONTENT<br />ONLY COLOUR + SURFACE TREATMENT CHANGES</div>
+    </header>
+
+    <section class="comparison" id="comparison"></section>
+    <p class="footer-note">Selective pixel detailing: micro-type, stepped corners, status glyphs and restrained texture. Card content stays modern and readable.</p>
+  </main>
+
+  <template id="concept-template">
+    <article class="concept">
+      <div class="palette-label">
+        <span class="palette-name"></span>
+        <span class="palette-note"></span>
+      </div>
+      <header class="app-header">
+        <div>
+          <div class="brand"><span class="brand-mark">◆</span>MINI KANBAN</div>
+          <div class="board-id">BOARD 01 // LOCAL</div>
+        </div>
+        <button class="add-task">+ New task</button>
+      </header>
+      <div class="board">
+        <section class="column">
+          <div class="column-head"><span class="column-title">To Do</span><span class="column-count">3</span></div>
+          <article class="card featured">
+            <span class="drag" aria-hidden="true"></span>
+            <h2 class="card-title">Create empty-board state</h2>
+            <p class="card-copy">Guide the first action without adding decorative clutter.</p>
+            <div class="meta"><span class="priority">HIGH</span><span class="due">DUE 14 SEP</span><span class="move">→</span></div>
+          </article>
+          <article class="card">
+            <span class="drag" aria-hidden="true"></span>
+            <h2 class="card-title">Define local storage schema</h2>
+            <p class="card-copy">Persist task fields, status and manual order safely.</p>
+            <div class="meta"><span class="priority">MED</span><span class="due">DUE 16 SEP</span><span class="move">→</span></div>
+          </article>
+          <div class="drop-hint">Drop task here</div>
+        </section>
+        <section class="column">
+          <div class="column-head"><span class="column-title">In Progress</span><span class="column-count">2</span></div>
+          <article class="card featured">
+            <span class="drag" aria-hidden="true"></span>
+            <h2 class="card-title">Build task form</h2>
+            <p class="card-copy">Title, description, priority and optional due date.</p>
+            <div class="meta"><span class="priority">HIGH</span><span class="due">DUE TODAY</span><span class="move">←</span><span class="move">→</span></div>
+          </article>
+          <article class="card">
+            <span class="drag" aria-hidden="true"></span>
+            <h2 class="card-title">Add keyboard move controls</h2>
+            <p class="card-copy">Keep the board usable beyond pointer drag and drop.</p>
+            <div class="meta"><span class="priority">LOW</span><span class="due">NO DATE</span><span class="move">←</span><span class="move">→</span></div>
+          </article>
+        </section>
+        <section class="column">
+          <div class="column-head"><span class="column-title">Done</span><span class="column-count">2</span></div>
+          <article class="card done">
+            <span class="drag" aria-hidden="true"></span>
+            <h2 class="card-title">Choose v1 workflow</h2>
+            <p class="card-copy">Commit to To Do, In Progress and Done—no backlog.</p>
+            <div class="meta"><span class="priority">MED</span><span class="due">DONE</span><span class="move">←</span></div>
+          </article>
+          <article class="card done">
+            <span class="drag" aria-hidden="true"></span>
+            <h2 class="card-title">Set the visual direction</h2>
+            <p class="card-copy">Modern utility with restrained retro-game references.</p>
+            <div class="meta"><span class="priority">LOW</span><span class="due">DONE</span><span class="move">←</span></div>
+          </article>
+        </section>
+      </div>
+    </article>
+  </template>
+
+  <script>
+    const variants = [
+      ["concept-a", "A // PARCHMENT", "LIGHT + AIRY"],
+      ["concept-b", "B // NIGHT FRAME", "RECOMMENDED"],
+      ["concept-c", "C // TERMINAL", "BLACK + ORANGE"]
+    ];
+
+    const host = document.querySelector("#comparison");
+    const template = document.querySelector("#concept-template");
+    for (const [className, name, note] of variants) {
+      const node = template.content.cloneNode(true);
+      node.querySelector(".concept").classList.add(className);
+      node.querySelector(".palette-name").textContent = name;
+      node.querySelector(".palette-note").textContent = note;
+      host.append(node);
+    }
+  </script>
+</body>
+</html>
