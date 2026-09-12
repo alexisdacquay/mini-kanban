@@ -125,7 +125,8 @@ export function Board() {
     e.preventDefault();
     const id = dragId ?? e.dataTransfer.getData("text/plain");
     if (id) {
-      const target = dropTarget && dropTarget.column === column ? dropTarget.index : byColumn[column].length;
+      const target =
+        dropTarget && dropTarget.column === column ? dropTarget.index : byColumn[column].length;
       placeTask(id, column, target);
     }
     setDragId(null);
