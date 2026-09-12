@@ -277,7 +277,7 @@ export function Board() {
           <AlertDialogFooter>
             <AlertDialogCancel>Keep it</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:brightness-90"
               onClick={() => {
                 if (pendingDelete)
                   setTasks((prev) => prev.filter((t) => t.id !== pendingDelete.id));

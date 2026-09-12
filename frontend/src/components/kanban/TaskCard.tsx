@@ -114,7 +114,7 @@ export function TaskCard({
             aria-label={`Move "${task.title}" to previous column`}
             disabled={!canMoveLeft}
             onClick={() => onMove(-1)}
-            className="rounded-sm border border-border p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground disabled:pointer-events-none disabled:opacity-30"
+            className="rounded-sm border border-border p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:pointer-events-none disabled:opacity-30"
           >
             <ArrowLeft className="size-3.5" />
           </button>
@@ -123,7 +123,7 @@ export function TaskCard({
             aria-label={`Move "${task.title}" to next column`}
             disabled={!canMoveRight}
             onClick={() => onMove(1)}
-            className="rounded-sm border border-border p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground disabled:pointer-events-none disabled:opacity-30"
+            className="rounded-sm border border-border p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:pointer-events-none disabled:opacity-30"
           >
             <ArrowRight className="size-3.5" />
           </button>
@@ -133,7 +133,7 @@ export function TaskCard({
             type="button"
             aria-label={`Edit "${task.title}"`}
             onClick={onEdit}
-            className="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground"
+            className="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             <Pencil className="size-3.5" />
           </button>
@@ -141,7 +141,7 @@ export function TaskCard({
             type="button"
             aria-label={`Delete "${task.title}"`}
             onClick={onDelete}
-            className="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
+            className="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             <Trash2 className="size-3.5" />
           </button>

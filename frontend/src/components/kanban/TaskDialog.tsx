@@ -110,17 +110,22 @@ export function TaskDialog({ open, task, onOpenChange, onSubmit }: Props) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Priority</Label>
-              <div className="flex gap-1 rounded-md border border-border bg-input/40 p-1">
+              <Label id="task-priority-label">Priority</Label>
+              <div
+                className="flex gap-1 rounded-md border border-border bg-input/40 p-1"
+                role="group"
+                aria-labelledby="task-priority-label"
+              >
                 {PRIORITIES.map((p) => (
                   <button
                     key={p.id}
                     type="button"
+                    aria-pressed={draft.priority === p.id}
                     onClick={() => setDraft((d) => ({ ...d, priority: p.id }))}
                     className={cn(
-                      "flex-1 rounded-sm px-2 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors",
+                      "flex-1 rounded-sm px-2 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover",
                       draft.priority === p.id
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary font-bold text-primary-foreground underline decoration-2 underline-offset-4"
                         : "text-muted-foreground hover:bg-secondary hover:text-secondary-foreground",
                     )}
                   >
