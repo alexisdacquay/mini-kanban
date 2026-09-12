@@ -2,7 +2,7 @@
 
 ## Status
 
-Product choices are confirmed. Minimal implementation defaults that make the scope buildable are identified separately below. This is documentation only; Lovable will implement the frontend later.
+Product choices are confirmed, and the Lovable-generated frontend is present in `frontend/`. The session-sized backlog covers verification and the remaining version 1 gaps; application state stays in the browser for now.
 
 ## Goal
 
@@ -79,32 +79,7 @@ These fill ordinary gaps without adding product features:
 
 ### Themes
 
-The top area contains a control for three named themes. Its exact component and placement are deferred to frontend design.
-
-The following colours are suggested starting tokens derived from the accepted comparison mockup. Lovable may make small adjustments to meet contrast requirements without changing the character of a theme.
-
-1. **Terminal — default on first use**
-   - Near-black background: `#080706`
-   - Dark panel: `#100C09`
-   - Raised surface: `#17100C`
-   - Orange accent: `#FF8126`
-   - Bright focus/hover accent: `#FFB15C`
-   - Use warm light text for longer copy; orange is for emphasis, controls, labels, and rules rather than every word.
-2. **Night**
-   - Navy frame: `#0D182A`
-   - Blue panel: `#152239`
-   - Ivory card: `#F5ECD8`
-   - Raised ivory card: `#FFF8E8`
-   - Gold accent: `#E0AD21`
-   - Dark card text: `#172239`
-3. **Parchment**
-   - Warm canvas: `#F4EBD7`
-   - Column surface: `#FFF8E9`
-   - Card surface: `#FFFCF3`
-   - Navy text: `#122039`
-   - Amber accent: `#E4A817`
-
-The chosen theme is remembered in browser `localStorage`. The comparison is saved at [`design/mini-kanban-palette-comparison.png`](../design/mini-kanban-palette-comparison.png).
+The top area contains a control for three distinct themes, and the chosen theme is remembered in browser `localStorage`. Lovable owns the theme names, palettes, default, and detailed presentation.
 
 ### Visual principles
 
@@ -130,7 +105,7 @@ The chosen theme is remembered in browser `localStorage`. The comparison is save
 Version 1 is complete only when all of the following are true:
 
 1. A first-time visit shows one empty board with the fixed To Do, In Progress, and Done columns.
-2. Terminal is the first-use theme.
+2. A coherent default theme is applied on first use.
 3. One create form or modal shows title, description, priority, and due date; a valid submission creates the task at the top of To Do.
 4. The create form rejects a blank title, permits an empty description and due date, offers only Low/Medium/High priority, and defaults priority to Medium.
 5. An existing task can be reopened, edited, and saved.
@@ -139,7 +114,7 @@ Version 1 is complete only when all of the following are true:
 8. Task content, status, order, and selected theme survive refresh in the same browser profile.
 9. A Done task remains visible and can move back to an earlier column.
 10. Delete first asks for confirmation; cancelling preserves the task and confirming removes it persistently.
-11. Parchment, Night, and Terminal can all be selected from a control in the top area, and the selection survives refresh.
+11. Three distinct themes can be selected from a control in the top area, and the selection survives refresh.
 12. The board remains operable on a narrow screen through horizontal scrolling.
 13. Forms, buttons, and the theme control have labels, keyboard access, visible focus, and sufficient contrast.
 
@@ -167,17 +142,6 @@ These do not block the scope and should be decided during frontend design:
 - How an overdue or near-due date is visually highlighted.
 - Any future character artwork.
 
-## Suggested implementation order
+## Delivery backlog
 
-This order keeps every step small and testable without adding features:
-
-1. Scaffold the actual React and TypeScript application and document only the scripts it really provides.
-2. Define the minimal task and persisted-board data shapes.
-3. Render the fixed empty board and implement create, edit, and confirmed delete.
-4. Add browser persistence and verify reload behaviour.
-5. Add move buttons, drag-and-drop, and manual card ordering.
-6. Add the three themes, Terminal default, and saved theme choice.
-7. Verify narrow-screen scrolling and the accessibility baseline.
-8. Test every acceptance criterion before considering version 1 complete.
-
-Implementation should remain client-side. Do not introduce a backend or expose any GitHub credential to frontend code.
+The small, session-sized implementation tasks are in [`_docs/tasks.md`](tasks.md). Application data remains browser-local; no data backend is planned for version 1.

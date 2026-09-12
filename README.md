@@ -4,7 +4,7 @@ Mini Kanban is a small, single-user task board for learning how to build a usefu
 
 ## Status
 
-The first version is scoped, including a few clearly labelled implementation defaults, but the application has not been built yet. Lovable will generate the frontend. This repository currently contains the product plan and visual direction only, so there are no verified install, run, build, or test commands to publish yet.
+The first version is scoped and the Lovable-generated frontend is present in `frontend/`. It has not yet been installed or verified locally, so there are no confirmed install, run, build, or test commands to publish yet.
 
 ## Version 1 at a glance
 
@@ -14,10 +14,10 @@ The first version is scoped, including a few clearly labelled implementation def
 - Title, description, Low/Medium/High priority, and an optional due date.
 - Drag-and-drop for moving and ordering, plus visible left/right buttons for column moves.
 - Automatic persistence in the same browser.
-- Three selectable themes, with **Terminal** as the default.
+- Three selectable themes whose visual direction and default are owned by Lovable.
 - Desktop-first layout that remains usable on narrow screens.
 
-The complete requirements and acceptance criteria are in [`_docs/plan.md`](_docs/plan.md).
+The complete standalone implementation backlog and acceptance criteria are in [`_docs/tasks.md`](_docs/tasks.md). [`_docs/plan.md`](_docs/plan.md) records the earlier product discussion.
 
 ## Planned technology
 
@@ -31,23 +31,27 @@ Version 1 is client-side only. It has no backend, database, accounts, cloud sync
 
 The interface combines a modern product layout with restrained retro-futuristic, pixel-game details. Pixel styling is reserved for small labels, icons, borders, and subtle texture; task content remains clean and readable.
 
-Three themes are planned: **Parchment**, **Night**, and **Terminal**. See the [palette comparison](design/mini-kanban-palette-comparison.png).
+Three selectable themes are planned, while their palettes, names, and default remain frontend design decisions. The earlier [palette comparison](design/mini-kanban-palette-comparison.png) is exploratory rather than a requirement.
 
 ## Repository layout
 
 ```text
 AGENTS.md                         Instructions for coding agents
+CLAUDE.md                         Loads the shared agent instructions
 _docs/
-  plan.md                         V1 scope, defaults, and acceptance criteria
+  plan.md                         Earlier V1 product discussion and rationale
+  tasks.md                        Standalone V1 backlog and acceptance criteria
+  loveable-instructions.md        Concise frontend brief for Lovable
 design/
   mini-kanban-palette-comparison.png
   palette-comparison.html        Editable palette study
+frontend/                         Lovable-generated application
 README.md
 ```
 
 ## Running locally
 
-There is no runnable application yet. After Lovable creates the frontend, replace this section with commands taken from the actual `package.json`; do not assume a package manager or script names beforehand.
+The scripts in `frontend/package.json` have not yet been verified in this checkout. Backlog task 1 establishes the testable project baseline; publish local commands here only after they have actually passed.
 
 ## Local data and secrets
 
