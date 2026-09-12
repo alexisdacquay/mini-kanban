@@ -23,9 +23,11 @@ import {
   newId,
   savePrefs,
   saveTasks,
+  THEMES,
   type ColumnId,
   type Prefs,
   type Task,
+  type ThemeId,
 } from "@/lib/kanban";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +59,10 @@ export function Board() {
     if (!hydrated) return;
     savePrefs(prefs);
   }, [prefs, hydrated]);
+
+  useEffect(() => {
+    document.documentElement.className = `theme-${prefs.theme}`;
+  }, [prefs.theme]);
 
   const byColumn = useMemo(() => {
     const map: Record<ColumnId, Task[]> = { todo: [], doing: [], done: [] };
@@ -140,6 +146,23 @@ export function Board() {
           </div>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Theme
+              <select
+                aria-label="Theme"
+                className="rounded-sm border border-input bg-background px-2 py-1.5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                value={prefs.theme}
+                onChange={(event) =>
+                  setPrefs((p) => ({ ...p, theme: event.target.value as ThemeId }))
+                }
+              >
+                {THEMES.map((theme) => (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <Button
               variant="outline"
               size="sm"

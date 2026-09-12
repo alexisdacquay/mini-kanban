@@ -1,5 +1,6 @@
 export type ColumnId = "todo" | "doing" | "done";
 export type Priority = "low" | "medium" | "high";
+export type ThemeId = "cathode" | "daylight" | "midnight";
 
 export type Task = {
   id: string;
@@ -26,8 +27,14 @@ export const PRIORITIES: { id: Priority; label: string }[] = [
 export const TASKS_KEY = "mini-kanban:tasks:v1";
 export const PREFS_KEY = "mini-kanban:prefs:v1";
 
-export type Prefs = { compact: boolean };
-export const DEFAULT_PREFS: Prefs = { compact: false };
+export const THEMES: { id: ThemeId; label: string }[] = [
+  { id: "cathode", label: "Cathode" },
+  { id: "daylight", label: "Daylight" },
+  { id: "midnight", label: "Midnight" },
+];
+
+export type Prefs = { compact: boolean; theme: ThemeId };
+export const DEFAULT_PREFS: Prefs = { compact: false, theme: "cathode" };
 
 function isColumnId(value: unknown): value is ColumnId {
   return value === "todo" || value === "doing" || value === "done";
@@ -35,6 +42,10 @@ function isColumnId(value: unknown): value is ColumnId {
 
 function isPriority(value: unknown): value is Priority {
   return value === "low" || value === "medium" || value === "high";
+}
+
+function isThemeId(value: unknown): value is ThemeId {
+  return value === "cathode" || value === "daylight" || value === "midnight";
 }
 
 function isTask(value: unknown): value is Task {
@@ -124,7 +135,11 @@ export function loadPrefs(): Prefs {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return DEFAULT_PREFS;
     const prefs = parsed as Record<string, unknown>;
-    return typeof prefs.compact === "boolean" ? { compact: prefs.compact } : DEFAULT_PREFS;
+    if (typeof prefs.compact !== "boolean") return DEFAULT_PREFS;
+    return {
+      compact: prefs.compact,
+      theme: isThemeId(prefs.theme) ? prefs.theme : DEFAULT_PREFS.theme,
+    };
   } catch {
     return DEFAULT_PREFS;
   }

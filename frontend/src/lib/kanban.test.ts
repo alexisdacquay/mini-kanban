@@ -56,21 +56,21 @@ const persistedTasks: Task[] = [
 test("restores complete persisted tasks in their saved order and preferences", () => {
   useStorage({
     [TASKS_KEY]: JSON.stringify(persistedTasks),
-    [PREFS_KEY]: JSON.stringify({ compact: true }),
+    [PREFS_KEY]: JSON.stringify({ compact: true, theme: "midnight" }),
   });
 
   expect(loadTasks()).toEqual(persistedTasks);
-  expect(loadPrefs()).toEqual({ compact: true });
+  expect(loadPrefs()).toEqual({ compact: true, theme: "midnight" });
 });
 
 test("saves browser state using the versioned, namespaced keys", () => {
   const storage = useStorage();
 
   saveTasks(persistedTasks);
-  savePrefs({ compact: true });
+  savePrefs({ compact: true, theme: "daylight" });
 
   expect(JSON.parse(storage.get(TASKS_KEY)!)).toEqual(persistedTasks);
-  expect(JSON.parse(storage.get(PREFS_KEY)!)).toEqual({ compact: true });
+  expect(JSON.parse(storage.get(PREFS_KEY)!)).toEqual({ compact: true, theme: "daylight" });
 });
 
 test("falls back to defaults when saved browser state is malformed or incompatible", () => {
@@ -81,6 +81,12 @@ test("falls back to defaults when saved browser state is malformed or incompatib
 
   expect(loadTasks()).toEqual([]);
   expect(loadPrefs()).toEqual(DEFAULT_PREFS);
+});
+
+test("falls back to the default theme when the saved theme is missing or invalid", () => {
+  useStorage({ [PREFS_KEY]: JSON.stringify({ compact: true, theme: "neon" }) });
+
+  expect(loadPrefs()).toEqual({ compact: true, theme: DEFAULT_PREFS.theme });
 });
 
 test("adds a new task before the existing To Do cards and persists its position", () => {

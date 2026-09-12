@@ -9,3 +9,10 @@ test("a first visit renders the three empty board columns", () => {
   expect(headings).toEqual(["To Do", "In Progress", "Done"]);
   expect(markup).not.toContain("<article");
 });
+
+test("the header exposes exactly three selectable themes", () => {
+  const markup = renderToStaticMarkup(<Board />);
+  const options = [...markup.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map((match) => match[1]);
+
+  expect(options).toEqual(["Cathode", "Daylight", "Midnight"]);
+});
