@@ -23,12 +23,34 @@ export const PRIORITIES: { id: Priority; label: string }[] = [
   { id: "high", label: "High" },
 ];
 
-
 export const TASKS_KEY = "mini-kanban:tasks:v1";
 export const PREFS_KEY = "mini-kanban:prefs:v1";
 
 export type Prefs = { compact: boolean };
 export const DEFAULT_PREFS: Prefs = { compact: false };
+
+function isColumnId(value: unknown): value is ColumnId {
+  return value === "todo" || value === "doing" || value === "done";
+}
+
+function isPriority(value: unknown): value is Priority {
+  return value === "low" || value === "medium" || value === "high";
+}
+
+function isTask(value: unknown): value is Task {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const task = value as Record<string, unknown>;
+  return (
+    typeof task.id === "string" &&
+    typeof task.title === "string" &&
+    typeof task.description === "string" &&
+    isPriority(task.priority) &&
+    (task.dueDate === null || typeof task.dueDate === "string") &&
+    isColumnId(task.column) &&
+    typeof task.createdAt === "number" &&
+    Number.isFinite(task.createdAt)
+  );
+}
 
 export function newId() {
   return `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -41,9 +63,7 @@ export function loadTasks(): Task[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (t): t is Task => !!t && typeof t.id === "string" && typeof t.title === "string",
-    );
+    return parsed.every(isTask) ? parsed : [];
   } catch {
     return [];
   }
@@ -62,7 +82,10 @@ export function loadPrefs(): Prefs {
   try {
     const raw = window.localStorage.getItem(PREFS_KEY);
     if (!raw) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return DEFAULT_PREFS;
+    const prefs = parsed as Record<string, unknown>;
+    return typeof prefs.compact === "boolean" ? { compact: prefs.compact } : DEFAULT_PREFS;
   } catch {
     return DEFAULT_PREFS;
   }
