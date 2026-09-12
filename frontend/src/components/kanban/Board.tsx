@@ -178,78 +178,80 @@ export function Board() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="grid gap-4 lg:grid-cols-3">
-          {COLUMNS.map((column, columnIndex) => {
-            const columnTasks = byColumn[column.id];
-            const isDropColumn = dropTarget?.column === column.id && !!dragId;
-            return (
-              <section
-                key={column.id}
-                onDragOver={(e) => handleColumnDragOver(e, column.id)}
-                onDrop={(e) => handleDrop(e, column.id)}
-                onDragLeave={() => setDropTarget(null)}
-                className={cn(
-                  "panel scanlines flex min-h-[60vh] flex-col p-3 transition-colors",
-                  isDropColumn && "glow-ring",
-                )}
-              >
-                <div className="mb-3 flex items-baseline justify-between gap-2 px-1">
-                  <h2 className="font-pixel text-[10px]">{column.label}</h2>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {columnTasks.length}
-                  </span>
-                </div>
-                <p className="mb-3 px-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {column.hint}
-                </p>
+        <div className="overflow-x-auto pb-2" role="region" aria-label="Kanban board">
+          <div className="grid grid-flow-col auto-cols-[minmax(18rem,1fr)] gap-4 lg:grid-flow-row lg:grid-cols-3">
+            {COLUMNS.map((column, columnIndex) => {
+              const columnTasks = byColumn[column.id];
+              const isDropColumn = dropTarget?.column === column.id && !!dragId;
+              return (
+                <section
+                  key={column.id}
+                  onDragOver={(e) => handleColumnDragOver(e, column.id)}
+                  onDrop={(e) => handleDrop(e, column.id)}
+                  onDragLeave={() => setDropTarget(null)}
+                  className={cn(
+                    "panel scanlines flex min-h-[60vh] flex-col p-3 transition-colors",
+                    isDropColumn && "glow-ring",
+                  )}
+                >
+                  <div className="mb-3 flex items-baseline justify-between gap-2 px-1">
+                    <h2 className="font-pixel text-[10px]">{column.label}</h2>
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {columnTasks.length}
+                    </span>
+                  </div>
+                  <p className="mb-3 px-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {column.hint}
+                  </p>
 
-                <div className="flex flex-1 flex-col gap-2">
-                  {columnTasks.map((task, index) => (
-                    <div key={task.id} className="relative">
-                      {isDropColumn && dropTarget?.index === index ? (
-                        <span className="absolute -top-1.5 left-0 right-0 h-0.5 rounded-full bg-primary" />
-                      ) : null}
-                      <TaskCard
-                        task={task}
-                        compact={prefs.compact}
-                        dragging={dragId === task.id}
-                        canMoveLeft={columnIndex > 0}
-                        canMoveRight={columnIndex < COLUMNS.length - 1}
-                        onEdit={() => {
-                          setEditing(task);
-                          setDialogOpen(true);
-                        }}
-                        onDelete={() => setPendingDelete(task)}
-                        onMove={(dir) => shiftColumn(task, dir)}
-                        onDragStart={(e) => {
-                          setDragId(task.id);
-                          e.dataTransfer.effectAllowed = "move";
-                          e.dataTransfer.setData("text/plain", task.id);
-                        }}
-                        onDragEnd={() => {
-                          setDragId(null);
-                          setDropTarget(null);
-                        }}
-                        onDragOver={(e) => handleCardDragOver(e, column.id, index)}
-                      />
-                    </div>
-                  ))}
+                  <div className="flex flex-1 flex-col gap-2">
+                    {columnTasks.map((task, index) => (
+                      <div key={task.id} className="relative">
+                        {isDropColumn && dropTarget?.index === index ? (
+                          <span className="absolute -top-1.5 left-0 right-0 h-0.5 rounded-full bg-primary" />
+                        ) : null}
+                        <TaskCard
+                          task={task}
+                          compact={prefs.compact}
+                          dragging={dragId === task.id}
+                          canMoveLeft={columnIndex > 0}
+                          canMoveRight={columnIndex < COLUMNS.length - 1}
+                          onEdit={() => {
+                            setEditing(task);
+                            setDialogOpen(true);
+                          }}
+                          onDelete={() => setPendingDelete(task)}
+                          onMove={(dir) => shiftColumn(task, dir)}
+                          onDragStart={(e) => {
+                            setDragId(task.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", task.id);
+                          }}
+                          onDragEnd={() => {
+                            setDragId(null);
+                            setDropTarget(null);
+                          }}
+                          onDragOver={(e) => handleCardDragOver(e, column.id, index)}
+                        />
+                      </div>
+                    ))}
 
-                  {isDropColumn && dropTarget.index >= columnTasks.length ? (
-                    <span className="h-0.5 rounded-full bg-primary" />
-                  ) : null}
+                    {isDropColumn && dropTarget.index >= columnTasks.length ? (
+                      <span className="h-0.5 rounded-full bg-primary" />
+                    ) : null}
 
-                  {columnTasks.length === 0 ? (
-                    <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border/80 p-6 text-center">
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                        {column.id === "todo" ? "Add your first card" : "Drop cards here"}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              </section>
-            );
-          })}
+                    {columnTasks.length === 0 ? (
+                      <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border/80 p-6 text-center">
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                          {column.id === "todo" ? "Add your first card" : "Drop cards here"}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         </div>
 
         <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

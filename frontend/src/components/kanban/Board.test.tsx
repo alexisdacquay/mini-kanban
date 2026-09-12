@@ -10,6 +10,17 @@ test("a first visit renders the three empty board columns", () => {
   expect(markup).not.toContain("<article");
 });
 
+test("the board keeps its three columns in a horizontally scrollable narrow-screen layout", () => {
+  const markup = renderToStaticMarkup(<Board />);
+
+  expect(markup).toContain('role="region"');
+  expect(markup).toContain('aria-label="Kanban board"');
+  expect(markup).toContain("overflow-x-auto");
+  expect(markup).toContain("grid-flow-col");
+  expect(markup).toContain("auto-cols-[minmax(18rem,1fr)]");
+  expect(markup).toContain("lg:grid-cols-3");
+});
+
 test("the header exposes exactly three selectable themes", () => {
   const markup = renderToStaticMarkup(<Board />);
   const options = [...markup.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map((match) => match[1]);
