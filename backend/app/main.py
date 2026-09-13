@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,14 +8,25 @@ from fastapi.responses import JSONResponse
 
 from app.models import Error
 from app.routers import preferences, tasks
-from app.store import InMemoryStore, TaskNotFound
+from app.store import SQLAlchemyStore, TaskNotFound
 
 API_PREFIX = "/api/v1"
 
 
-def create_app(store: InMemoryStore | None = None) -> FastAPI:
-    app = FastAPI(title="Mini Kanban API", version="1.0.0")
-    app.state.store = store if store is not None else InMemoryStore()
+def create_app(
+    *,
+    database_url: str | None = None,
+) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        active_store = SQLAlchemyStore(database_url)
+        app.state.store = active_store
+        try:
+            yield
+        finally:
+            active_store.close()
+
+    app = FastAPI(title="Mini Kanban API", version="1.0.0", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -45,4 +59,3 @@ def create_app(store: InMemoryStore | None = None) -> FastAPI:
 
 
 app = create_app()
-

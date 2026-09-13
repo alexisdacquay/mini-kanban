@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
 import {
   AlertDialog,
@@ -13,16 +13,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "./TaskCard";
 import { TaskDialog, type TaskDraft } from "./TaskDialog";
+import { kanbanApi } from "@/lib/api";
 import {
   addTaskAtTopOfTodo,
   COLUMNS,
   DEFAULT_PREFS,
-  loadPrefs,
-  loadTasks,
-  moveTask,
-  newId,
-  savePrefs,
-  saveTasks,
   THEMES,
   type ColumnId,
   type Prefs,
@@ -36,29 +31,70 @@ type DropTarget = { column: ColumnId; index: number };
 export function Board() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
-  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [savingPreferences, setSavingPreferences] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+  const mountedRef = useRef(false);
+  const mutationCountRef = useRef(0);
+  const mutationRevisionRef = useRef(0);
+  const preferencesSavingRef = useRef(false);
 
   useEffect(() => {
-    setTasks(loadTasks());
-    setPrefs(loadPrefs());
-    setHydrated(true);
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    saveTasks(tasks);
-  }, [tasks, hydrated]);
+    let active = true;
+    let timeout: number | undefined;
 
-  useEffect(() => {
-    if (!hydrated) return;
-    savePrefs(prefs);
-  }, [prefs, hydrated]);
+    async function syncBoard(initial: boolean) {
+      if (mutationCountRef.current > 0) {
+        if (active) timeout = window.setTimeout(() => void syncBoard(initial), 1_000);
+        return;
+      }
+
+      const revision = mutationRevisionRef.current;
+      if (initial) setLoading(true);
+
+      try {
+        const [nextTasks, nextPrefs] = await Promise.all([
+          kanbanApi.listTasks(),
+          kanbanApi.getPreferences(),
+        ]);
+        if (!active || revision !== mutationRevisionRef.current) return;
+
+        setTasks(nextTasks);
+        setPrefs(nextPrefs);
+        setSyncError(null);
+      } catch {
+        if (active && revision === mutationRevisionRef.current) {
+          setSyncError("Couldn’t sync with the backend.");
+        }
+      } finally {
+        if (active) {
+          if (initial) setLoading(false);
+          timeout = window.setTimeout(() => void syncBoard(false), 1_000);
+        }
+      }
+    }
+
+    void syncBoard(true);
+    return () => {
+      active = false;
+      if (timeout !== undefined) window.clearTimeout(timeout);
+    };
+  }, [reloadKey]);
 
   useEffect(() => {
     document.documentElement.className = `theme-${prefs.theme}`;
@@ -75,26 +111,96 @@ export function Board() {
     setDialogOpen(true);
   }
 
-  function submitDraft(draft: TaskDraft) {
-    if (editing) {
-      setTasks((prev) => prev.map((t) => (t.id === editing.id ? { ...t, ...draft } : t)));
-      return;
+  async function runMutation<T>(request: () => Promise<T>, failureMessage: string) {
+    mutationCountRef.current += 1;
+    mutationRevisionRef.current += 1;
+
+    try {
+      const value = await request();
+      if (mountedRef.current) setActionError(null);
+      return { ok: true as const, value };
+    } catch {
+      if (mountedRef.current) setActionError(failureMessage);
+      return { ok: false as const };
+    } finally {
+      mutationCountRef.current -= 1;
     }
-    setTasks((prev) =>
-      addTaskAtTopOfTodo(prev, { id: newId(), column: "todo", createdAt: Date.now(), ...draft }),
-    );
   }
 
-  /** Place `id` into `column` at position `index` among that column's cards. */
-  function placeTask(id: string, column: ColumnId, index: number) {
-    setTasks((prev) => moveTask(prev, id, column, index));
+  async function submitDraft(draft: TaskDraft): Promise<boolean> {
+    const taskBeingEdited = editing;
+    if (taskBeingEdited) {
+      const result = await runMutation(
+        () => kanbanApi.updateTask(taskBeingEdited.id, draft),
+        "Couldn’t save the task.",
+      );
+      if (!result.ok || !mountedRef.current) return false;
+
+      setTasks((prev) => prev.map((task) => (task.id === result.value.id ? result.value : task)));
+      return true;
+    }
+
+    const result = await runMutation(
+      () => kanbanApi.createTask(draft),
+      "Couldn’t create the task.",
+    );
+    if (!result.ok || !mountedRef.current) return false;
+
+    setTasks((prev) => addTaskAtTopOfTodo(prev, result.value));
+    return true;
+  }
+
+  /** Place `id` into `column` at a drop index calculated before removing the task. */
+  async function placeTask(id: string, column: ColumnId, index: number) {
+    const moving = tasks.find((task) => task.id === id);
+    const sourceIndex = moving ? byColumn[moving.column].findIndex((task) => task.id === id) : -1;
+    const finalIndex =
+      moving?.column === column && sourceIndex >= 0 && sourceIndex < index ? index - 1 : index;
+    const result = await runMutation(
+      () => kanbanApi.placeTask(id, column, finalIndex),
+      "Couldn’t move the task.",
+    );
+    if (!result.ok || !mountedRef.current) return;
+
+    setTasks(result.value);
+  }
+
+  async function replacePreferences(next: Prefs) {
+    if (preferencesSavingRef.current) return;
+    preferencesSavingRef.current = true;
+    setSavingPreferences(true);
+
+    try {
+      const result = await runMutation(
+        () => kanbanApi.replacePreferences(next),
+        "Couldn’t save display preferences.",
+      );
+      if (result.ok && mountedRef.current) setPrefs(result.value);
+    } finally {
+      preferencesSavingRef.current = false;
+      if (mountedRef.current) setSavingPreferences(false);
+    }
+  }
+
+  async function deletePendingTask() {
+    const task = pendingDelete;
+    setPendingDelete(null);
+    if (!task) return;
+
+    const result = await runMutation(
+      () => kanbanApi.deleteTask(task.id),
+      "Couldn’t delete the task.",
+    );
+    if (!result.ok || !mountedRef.current) return;
+
+    setTasks((prev) => prev.filter((candidate) => candidate.id !== task.id));
   }
 
   function shiftColumn(task: Task, direction: -1 | 1) {
     const current = COLUMNS.findIndex((c) => c.id === task.column);
     const next = COLUMNS[current + direction];
     if (!next) return;
-    placeTask(task.id, next.id, byColumn[next.id].length);
+    void placeTask(task.id, next.id, byColumn[next.id].length);
   }
 
   function handleCardDragOver(e: React.DragEvent, column: ColumnId, index: number) {
@@ -120,7 +226,7 @@ export function Board() {
     if (id) {
       const target =
         dropTarget && dropTarget.column === column ? dropTarget.index : byColumn[column].length;
-      placeTask(id, column, target);
+      void placeTask(id, column, target);
     }
     setDragId(null);
     setDropTarget(null);
@@ -128,6 +234,7 @@ export function Board() {
 
   const total = tasks.length;
   const doneCount = byColumn.done.length;
+  const error = actionError ?? syncError;
 
   return (
     <div className="min-h-screen">
@@ -140,7 +247,7 @@ export function Board() {
             <div>
               <h1 className="font-pixel text-[11px] sm:text-xs">MINI KANBAN</h1>
               <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                {total} cards · {doneCount} done · saved locally
+                {total} cards · {doneCount} done · synced with backend
               </p>
             </div>
           </div>
@@ -150,10 +257,14 @@ export function Board() {
               Theme
               <select
                 aria-label="Theme"
+                disabled={savingPreferences}
                 className="rounded-sm border border-input bg-background px-2 py-1.5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 value={prefs.theme}
                 onChange={(event) =>
-                  setPrefs((p) => ({ ...p, theme: event.target.value as ThemeId }))
+                  void replacePreferences({
+                    ...prefs,
+                    theme: event.target.value as ThemeId,
+                  })
                 }
               >
                 {THEMES.map((theme) => (
@@ -166,7 +277,8 @@ export function Board() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPrefs((p) => ({ ...p, compact: !p.compact }))}
+              disabled={savingPreferences}
+              onClick={() => void replacePreferences({ ...prefs, compact: !prefs.compact })}
             >
               {prefs.compact ? "Comfortable" : "Compact"}
             </Button>
@@ -178,6 +290,39 @@ export function Board() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        {loading ? (
+          <p
+            className="mb-4 rounded-md border border-border bg-card px-4 py-3 font-mono text-xs uppercase tracking-widest text-muted-foreground"
+            role="status"
+          >
+            Loading board…
+          </p>
+        ) : null}
+
+        {error ? (
+          <div
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/60 bg-card px-4 py-3"
+            role="alert"
+          >
+            <p className="font-mono text-xs uppercase tracking-widest text-destructive">{error}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (actionError) {
+                  setActionError(null);
+                } else {
+                  setSyncError(null);
+                  setLoading(true);
+                  setReloadKey((key) => key + 1);
+                }
+              }}
+            >
+              {actionError ? "Dismiss" : "Retry"}
+            </Button>
+          </div>
+        ) : null}
+
         <div className="overflow-x-auto pb-2" role="region" aria-label="Kanban board">
           <div className="grid grid-flow-col auto-cols-[minmax(18rem,1fr)] gap-4 lg:grid-flow-row lg:grid-cols-3">
             {COLUMNS.map((column, columnIndex) => {
@@ -255,7 +400,7 @@ export function Board() {
         </div>
 
         <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Drag cards or use the arrows · everything stays in this browser
+          Drag cards or use the arrows · changes sync automatically
         </p>
       </main>
 
@@ -278,11 +423,7 @@ export function Board() {
             <AlertDialogCancel>Keep it</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:brightness-90"
-              onClick={() => {
-                if (pendingDelete)
-                  setTasks((prev) => prev.filter((t) => t.id !== pendingDelete.id));
-                setPendingDelete(null);
-              }}
+              onClick={() => void deletePendingTask()}
             >
               Delete
             </AlertDialogAction>

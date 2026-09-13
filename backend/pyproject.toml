@@ -1,10 +1,11 @@
 [project]
 name = "mini-kanban-backend"
 version = "0.1.0"
-description = "In-memory FastAPI backend for Mini Kanban"
+description = "FastAPI and SQLAlchemy backend for Mini Kanban"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1",
+  "sqlalchemy>=2.0,<3",
   "uvicorn>=0.34,<1",
 ]
 
@@ -16,4 +17,3 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

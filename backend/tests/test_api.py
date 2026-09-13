@@ -1,6 +1,9 @@
 from typing import Any
 
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
+
+from app.main import create_app
 
 
 TASK_KEYS = {
@@ -187,3 +190,78 @@ def test_preferences_have_defaults_and_can_be_replaced(client: TestClient) -> No
     response = client.get("/api/v1/preferences")
     assert response.status_code == 200
     assert response.json() == {"theme": "midnight", "compact": True}
+
+
+def test_board_state_survives_app_recreation(database_url: str) -> None:
+    with TestClient(create_app(database_url=database_url)) as first_client:
+        original_tasks = list_tasks(first_client)
+        deleted_task = next(
+            task for task in original_tasks if task["title"] == "Plan the week"
+        )
+
+        create_response = first_client.post(
+            "/api/v1/tasks", json={"title": "Persist this card"}
+        )
+        assert create_response.status_code == 201
+        created_task = create_response.json()
+
+        placement_response = first_client.put(
+            f"/api/v1/tasks/{created_task['id']}/placement",
+            json={"column": "doing", "index": 0},
+        )
+        assert placement_response.status_code == 200
+        assert first_client.delete(
+            f"/api/v1/tasks/{deleted_task['id']}"
+        ).status_code == 204
+
+        preferences_response = first_client.put(
+            "/api/v1/preferences",
+            json={"theme": "midnight", "compact": True},
+        )
+        assert preferences_response.status_code == 200
+        expected_tasks = list_tasks(first_client)
+
+    with TestClient(create_app(database_url=database_url)) as restarted_client:
+        assert list_tasks(restarted_client) == expected_tasks
+        assert restarted_client.get("/api/v1/preferences").json() == {
+            "theme": "midnight",
+            "compact": True,
+        }
+
+
+def test_intentionally_empty_board_is_not_reseeded(database_url: str) -> None:
+    with TestClient(create_app(database_url=database_url)) as first_client:
+        for task in list_tasks(first_client):
+            response = first_client.delete(f"/api/v1/tasks/{task['id']}")
+            assert response.status_code == 204
+        assert list_tasks(first_client) == []
+
+    with TestClient(create_app(database_url=database_url)) as restarted_client:
+        assert list_tasks(restarted_client) == []
+
+
+def test_database_url_environment_variable_selects_database(
+    database_url: str, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", database_url)
+
+    with TestClient(create_app()) as environment_client:
+        response = environment_client.post(
+            "/api/v1/tasks", json={"title": "Stored through DATABASE_URL"}
+        )
+        assert response.status_code == 201
+        created_task = response.json()
+
+    with TestClient(create_app(database_url=database_url)) as explicit_client:
+        assert created_task in list_tasks(explicit_client)
+
+
+def test_sqlite_memory_database_is_shared_with_request_threads() -> None:
+    with TestClient(create_app(database_url="sqlite:///:memory:")) as memory_client:
+        tasks = list_tasks(memory_client)
+
+    assert [task["title"] for task in tasks] == [
+        "Plan the week",
+        "Build the API",
+        "Ship the first board",
+    ]

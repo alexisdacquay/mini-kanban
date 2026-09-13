@@ -25,7 +25,7 @@ type Props = {
   open: boolean;
   task: Task | null;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (draft: TaskDraft) => void;
+  onSubmit: (draft: TaskDraft) => Promise<boolean>;
 };
 
 const emptyDraft: TaskDraft = {
@@ -38,10 +38,12 @@ const emptyDraft: TaskDraft = {
 export function TaskDialog({ open, task, onOpenChange, onSubmit }: Props) {
   const [draft, setDraft] = useState<TaskDraft>(emptyDraft);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setSubmitting(false);
     setDraft(
       task
         ? {
@@ -54,18 +56,30 @@ export function TaskDialog({ open, task, onOpenChange, onSubmit }: Props) {
     );
   }, [open, task]);
 
-  function submit() {
+  async function submit() {
+    if (submitting) return;
     const title = draft.title.trim();
     if (!title) {
       setError("A title is required.");
       return;
     }
-    onSubmit({ ...draft, title, description: draft.description.trim() });
-    onOpenChange(false);
+    setSubmitting(true);
+    const saved = await onSubmit({ ...draft, title, description: draft.description.trim() });
+    if (saved) {
+      onOpenChange(false);
+    } else {
+      setError(task ? "Couldn’t save the task." : "Couldn’t create the task.");
+    }
+    setSubmitting(false);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!submitting || nextOpen) onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="bg-popover sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-pixel text-sm">
@@ -91,7 +105,7 @@ export function TaskDialog({ open, task, onOpenChange, onSubmit }: Props) {
                 if (error) setError(null);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") submit();
+                if (e.key === "Enter") void submit();
               }}
             />
             {error ? <p className="text-xs text-high">{error}</p> : null}
@@ -150,10 +164,12 @@ export function TaskDialog({ open, task, onOpenChange, onSubmit }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" disabled={submitting} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={submit}>{task ? "Save changes" : "Add task"}</Button>
+          <Button disabled={submitting} onClick={() => void submit()}>
+            {submitting ? "Saving…" : task ? "Save changes" : "Add task"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

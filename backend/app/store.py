@@ -1,11 +1,23 @@
-"""In-memory persistence for the mocked Mini Kanban backend."""
+"""SQLAlchemy persistence for the Mini Kanban backend."""
 
 from __future__ import annotations
 
-from threading import RLock
+from enum import Enum
 from time import time
 from uuid import uuid4
 
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from .database import (
+    Base,
+    PreferencesRecord,
+    SessionFactory,
+    TaskRecord,
+    create_database_engine,
+    create_session_factory,
+    resolve_database_url,
+)
 from .models import (
     Column,
     Preferences,
@@ -40,7 +52,7 @@ def _seed_tasks() -> list[Task]:
         Task(
             id="seed-build-api",
             title="Build the API",
-            description="Connect the board to its mocked FastAPI backend.",
+            description="Connect the board to its FastAPI backend.",
             priority=Priority.HIGH,
             dueDate=None,
             column=Column.DOING,
@@ -58,36 +70,92 @@ def _seed_tasks() -> list[Task]:
     ]
 
 
-class InMemoryStore:
-    """Canonical task order and preferences held for the process lifetime."""
+class SQLAlchemyStore:
+    """Persist the board through short-lived SQLAlchemy sessions."""
 
-    def __init__(self, *, seed: bool = True) -> None:
-        self._lock = RLock()
-        self._tasks = _seed_tasks() if seed else []
-        self._preferences = Preferences(theme=Theme.CATHODE, compact=False)
+    def __init__(self, database_url: str | None = None) -> None:
+        self.database_url = resolve_database_url(database_url)
+        self._engine = create_database_engine(self.database_url)
+        self._sessions = create_session_factory(self._engine)
+        Base.metadata.create_all(self._engine)
+        self._seed_new_database()
 
-    @classmethod
-    def seeded(cls) -> InMemoryStore:
-        """Create a fresh store populated with the demonstration board."""
+    def close(self) -> None:
+        """Release pooled database connections."""
 
-        return cls(seed=True)
+        self._engine.dispose()
 
     @staticmethod
-    def _copy_task(task: Task) -> Task:
-        return task.model_copy(deep=True)
+    def _to_task(record: TaskRecord) -> Task:
+        return Task(
+            id=record.id,
+            title=record.title,
+            description=record.description,
+            priority=record.priority,
+            dueDate=record.due_date,
+            column=record.column,
+            createdAt=record.created_at,
+        )
 
-    def _task_index(self, task_id: str) -> int:
-        for index, task in enumerate(self._tasks):
-            if task.id == task_id:
-                return index
+    @staticmethod
+    def _to_record(task: Task, position: int) -> TaskRecord:
+        return TaskRecord(
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            priority=task.priority.value,
+            due_date=task.due_date,
+            column=task.column.value,
+            created_at=task.created_at,
+            position=position,
+        )
+
+    @staticmethod
+    def _ordered_records(session: Session) -> list[TaskRecord]:
+        statement = select(TaskRecord).order_by(TaskRecord.position, TaskRecord.id)
+        return list(session.scalars(statement))
+
+    @staticmethod
+    def _find_record(records: list[TaskRecord], task_id: str) -> TaskRecord:
+        for record in records:
+            if record.id == task_id:
+                return record
         raise TaskNotFound(task_id)
 
-    def _task_snapshot(self) -> list[Task]:
-        return [self._copy_task(task) for task in self._tasks]
+    @staticmethod
+    def _renumber(records: list[TaskRecord]) -> None:
+        for position, record in enumerate(records):
+            record.position = position
+
+    @staticmethod
+    def _preferences_from_record(record: PreferencesRecord) -> Preferences:
+        return Preferences(theme=record.theme, compact=record.compact)
+
+    def _seed_new_database(self) -> None:
+        with self._sessions.begin() as session:
+            task_count = session.scalar(
+                select(func.count()).select_from(TaskRecord)
+            )
+            preferences = session.get(PreferencesRecord, 1)
+
+            if task_count == 0 and preferences is None:
+                session.add_all(
+                    self._to_record(task, position)
+                    for position, task in enumerate(_seed_tasks())
+                )
+
+            if preferences is None:
+                session.add(
+                    PreferencesRecord(
+                        id=1,
+                        theme=Theme.CATHODE.value,
+                        compact=False,
+                    )
+                )
 
     def list_tasks(self) -> list[Task]:
-        with self._lock:
-            return self._task_snapshot()
+        with self._sessions() as session:
+            return [self._to_task(record) for record in self._ordered_records(session)]
 
     def create_task(self, data: TaskCreate) -> Task:
         task = Task(
@@ -100,40 +168,54 @@ class InMemoryStore:
             createdAt=int(time() * 1_000),
         )
 
-        with self._lock:
+        with self._sessions.begin() as session:
+            records = self._ordered_records(session)
             insertion_index = next(
                 (
                     index
-                    for index, existing_task in enumerate(self._tasks)
-                    if existing_task.column == Column.TODO
+                    for index, record in enumerate(records)
+                    if record.column == Column.TODO.value
                 ),
-                len(self._tasks),
+                len(records),
             )
-            self._tasks.insert(insertion_index, task)
-            return self._copy_task(task)
+            record = self._to_record(task, insertion_index)
+            records.insert(insertion_index, record)
+            self._renumber(records)
+            session.add(record)
+            return self._to_task(record)
 
     def update_task(self, task_id: str, data: TaskUpdate) -> Task:
-        with self._lock:
-            task_index = self._task_index(task_id)
-            changes = data.model_dump(exclude_unset=True)
-            updated_task = self._tasks[task_index].model_copy(update=changes)
-            self._tasks[task_index] = updated_task
-            return self._copy_task(updated_task)
+        with self._sessions.begin() as session:
+            record = session.get(TaskRecord, task_id)
+            if record is None:
+                raise TaskNotFound(task_id)
+
+            for field_name, value in data.model_dump(exclude_unset=True).items():
+                if isinstance(value, Enum):
+                    value = value.value
+                setattr(record, field_name, value)
+            return self._to_task(record)
 
     def delete_task(self, task_id: str) -> None:
-        with self._lock:
-            del self._tasks[self._task_index(task_id)]
+        with self._sessions.begin() as session:
+            records = self._ordered_records(session)
+            record = self._find_record(records, task_id)
+            records.remove(record)
+            session.delete(record)
+            self._renumber(records)
 
     def place_task(self, task_id: str, placement: TaskPlacement) -> list[Task]:
         """Place a task at its final zero-based position in a destination column."""
 
-        with self._lock:
-            moving_task = self._tasks.pop(self._task_index(task_id))
-            moved_task = moving_task.model_copy(update={"column": placement.column})
+        with self._sessions.begin() as session:
+            records = self._ordered_records(session)
+            moving_record = self._find_record(records, task_id)
+            records.remove(moving_record)
+            moving_record.column = placement.column.value
             destination_positions = [
                 index
-                for index, task in enumerate(self._tasks)
-                if task.column == placement.column
+                for index, record in enumerate(records)
+                if record.column == placement.column.value
             ]
 
             if placement.index < len(destination_positions):
@@ -141,16 +223,25 @@ class InMemoryStore:
             elif destination_positions:
                 insertion_index = destination_positions[-1] + 1
             else:
-                insertion_index = len(self._tasks)
+                insertion_index = len(records)
 
-            self._tasks.insert(insertion_index, moved_task)
-            return self._task_snapshot()
+            records.insert(insertion_index, moving_record)
+            self._renumber(records)
+            return [self._to_task(record) for record in records]
 
     def get_preferences(self) -> Preferences:
-        with self._lock:
-            return self._preferences.model_copy(deep=True)
+        with self._sessions() as session:
+            record = session.get(PreferencesRecord, 1)
+            if record is None:
+                raise RuntimeError("Database preferences have not been initialized.")
+            return self._preferences_from_record(record)
 
     def replace_preferences(self, preferences: Preferences) -> Preferences:
-        with self._lock:
-            self._preferences = preferences.model_copy(deep=True)
-            return self._preferences.model_copy(deep=True)
+        with self._sessions.begin() as session:
+            record = session.get(PreferencesRecord, 1)
+            if record is None:
+                record = PreferencesRecord(id=1)
+                session.add(record)
+            record.theme = preferences.theme.value
+            record.compact = preferences.compact
+            return self._preferences_from_record(record)

@@ -16,7 +16,7 @@ Users should be able to:
 
 - Delete tasks after confirmation. Done tasks remain visible and can be moved back.
 
-Save tasks, card order, column placement, and UI preferences in browser `localStorage`. Start with an empty board. Keep the app client-side in React and TypeScript, with no backend, database, authentication, or cloud sync.
+Load and save tasks, card order, column placement, and UI preferences through the Mini Kanban API. The FastAPI backend persists them with SQLAlchemy and SQLite by default; there is no authentication or cloud sync.
 
 Create a polished, contemporary, desktop-first interface that remains usable on narrow screens. A restrained retro-futuristic or pixel-game influence is welcome, but use it selectively and keep task content easy to read. Include a simple top-level selector for three distinct visual themes, but choose the palettes, theme names, default theme, typography, layout, interactions, and visual details yourself.
 
@@ -40,6 +40,8 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 
 This frontend uses Bun, as recorded in `bun.lock` and `bunfig.toml`.
 
+From the repository root, `make run` starts this frontend and its backend together. The frontend expects `http://localhost:8091/api/v1` by default; set `VITE_API_URL` when running it against another API address.
+
 Install the locked dependencies and run the available project commands with Bun:
 
 ```sh
@@ -51,7 +53,7 @@ bun run dev
 ```
 
 Available scripts are `dev`, `build`, `build:dev`, `preview`, `test`, `lint`, and `format`.
-Run the empty-board baseline test with:
+Run the frontend test suite with:
 
 ```sh
 bun run test

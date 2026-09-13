@@ -11,14 +11,14 @@ from .models import (
     TaskUpdate,
     Theme,
 )
-from .store import InMemoryStore, TaskNotFound
+from .store import SQLAlchemyStore, TaskNotFound
 
 __all__ = [
     "Column",
     "Error",
-    "InMemoryStore",
     "Preferences",
     "Priority",
+    "SQLAlchemyStore",
     "Task",
     "TaskCreate",
     "TaskNotFound",

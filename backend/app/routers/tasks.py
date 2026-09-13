@@ -16,7 +16,7 @@ VALIDATION_ERROR = {
 
 
 @router.get("", response_model=list[Task], operation_id="listTasks")
-async def list_tasks(store: Store) -> list[Task]:
+def list_tasks(store: Store) -> list[Task]:
     return store.list_tasks()
 
 
@@ -27,7 +27,7 @@ async def list_tasks(store: Store) -> list[Task]:
     operation_id="createTask",
     responses=BAD_REQUEST | VALIDATION_ERROR,
 )
-async def create_task(data: TaskCreate, store: Store) -> Task:
+def create_task(data: TaskCreate, store: Store) -> Task:
     return store.create_task(data)
 
 
@@ -37,7 +37,7 @@ async def create_task(data: TaskCreate, store: Store) -> Task:
     operation_id="updateTask",
     responses=BAD_REQUEST | NOT_FOUND | VALIDATION_ERROR,
 )
-async def update_task(taskId: TaskId, data: TaskUpdate, store: Store) -> Task:
+def update_task(taskId: TaskId, data: TaskUpdate, store: Store) -> Task:
     return store.update_task(taskId, data)
 
 
@@ -47,7 +47,7 @@ async def update_task(taskId: TaskId, data: TaskUpdate, store: Store) -> Task:
     operation_id="deleteTask",
     responses=NOT_FOUND,
 )
-async def delete_task(taskId: TaskId, store: Store) -> Response:
+def delete_task(taskId: TaskId, store: Store) -> Response:
     store.delete_task(taskId)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -58,5 +58,5 @@ async def delete_task(taskId: TaskId, store: Store) -> Response:
     operation_id="placeTask",
     responses=BAD_REQUEST | NOT_FOUND | VALIDATION_ERROR,
 )
-async def place_task(taskId: TaskId, placement: TaskPlacement, store: Store) -> list[Task]:
+def place_task(taskId: TaskId, placement: TaskPlacement, store: Store) -> list[Task]:
     return store.place_task(taskId, placement)
