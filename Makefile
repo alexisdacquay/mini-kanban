@@ -1,4 +1,4 @@
-.PHONY: run frontend backend
+.PHONY: run frontend backend test
 
 FRONTEND_PORT ?= 8080
 BACKEND_PORT ?= 8091
@@ -12,3 +12,7 @@ frontend:
 
 backend:
 	cd backend && uv run uvicorn app.main:app --reload --port $(BACKEND_PORT)
+
+test:
+	cd frontend && bun test
+	cd backend && uv run pytest

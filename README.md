@@ -63,6 +63,12 @@ make run
 
 This starts the frontend at `http://localhost:8080` and the backend at `http://localhost:8091`. Press `Ctrl+C` once to stop both. Override the ports when needed with, for example, `make run FRONTEND_PORT=8083 BACKEND_PORT=8093`.
 
+Run all frontend and backend tests with:
+
+```sh
+make test
+```
+
 Run these from the repository root:
 
 ```sh

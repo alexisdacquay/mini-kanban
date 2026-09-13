@@ -1,5 +1,6 @@
 # Commands
 
+- `make test` - run the frontend and backend test suites
 - The Lovable frontend is in `frontend/`. The following commands were verified in this checkout:
   - `cd frontend && bun test`
   - `cd frontend && bun run lint`
