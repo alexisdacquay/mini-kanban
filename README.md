@@ -4,7 +4,7 @@ Mini Kanban is a small, single-user task board for learning how to build a usefu
 
 ## Status
 
-The Lovable-generated frontend in `frontend/` has a verified local test, lint, and production-build workflow.
+The Lovable-generated frontend in `frontend/` and mocked FastAPI backend in `backend/` have verified local workflows.
 
 ## Version 1 at a glance
 
@@ -19,13 +19,15 @@ The Lovable-generated frontend in `frontend/` has a verified local test, lint, a
 
 The complete standalone implementation backlog and acceptance criteria are in [`_docs/tasks.md`](_docs/tasks.md). [`_docs/plan.md`](_docs/plan.md) records the earlier product discussion.
 
-## Planned technology
+## Technology
 
 - React
 - TypeScript
-- Browser `localStorage`
+- Browser `localStorage` in the current frontend
+- Python and FastAPI
+- An in-memory mocked backend store
 
-Version 1 is client-side only. It has no backend, database, accounts, cloud sync, or application API keys.
+The frontend is not wired to the API yet. It continues to use `localStorage`, while the API exposes the same task and preference behaviour from seeded memory. There is no durable database, authentication, cloud sync, or application API key.
 
 ## Visual direction
 
@@ -46,10 +48,20 @@ design/
   mini-kanban-palette-comparison.png
   palette-comparison.html        Editable palette study
 frontend/                         Lovable-generated application
+backend/                          Mocked FastAPI application and tests
+openapi.yaml                      Backend contract
 README.md
 ```
 
 ## Verified local commands
+
+Start the complete local application from the repository root:
+
+```sh
+make run
+```
+
+This starts the frontend on port `8080` and the mocked backend on port `8091`. Press `Ctrl+C` once to stop both.
 
 Run these from the repository root:
 
@@ -62,10 +74,21 @@ bun run build
 
 To use the board locally, run `cd frontend && bun run dev` and open the local URL Vite prints. The board starts empty for a browser profile with no saved Mini Kanban data. Tasks, their column placement and order, and the selected theme are stored in that browser profile with `localStorage`.
 
+Install, test, and start the mocked backend from the repository root:
+
+```sh
+cd backend
+uv sync
+uv run pytest
+uv run uvicorn app.main:app --reload --port 8091
+```
+
+The API is at `http://localhost:8091/api/v1`; interactive FastAPI documentation is at `http://localhost:8091/docs`. Its three seeded tasks and subsequent changes last only until the backend process stops.
+
 ## Local data and secrets
 
 Task data will remain in the current browser profile and can be lost if that browser's site data is cleared. Local `.env` files are ignored by Git. Any GitHub credential stored locally is tooling-only and must never be exposed to client-side code or committed.
 
 ## Deliberate limits
 
-Version 1 does not include multiple boards, authentication, collaboration, a backend, search, filters, subtasks, attachments, reminders, integrations, or analytics. These are excluded so the first homework project remains small and complete.
+The current project does not include multiple boards, authentication, collaboration, durable database storage, search, filters, subtasks, attachments, reminders, integrations, or analytics. These are excluded so the homework project remains small and complete.

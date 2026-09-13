@@ -1,0 +1,322 @@
+openapi: 3.1.0
+
+info:
+  title: Mini Kanban API
+  version: 1.0.0
+  description: |
+    Proposed backend contract for the existing Mini Kanban MVP. It replaces
+    browser localStorage without adding product features.
+
+    This version represents one board for one local user. No endpoint requires
+    authentication.
+
+servers:
+  - url: http://localhost:8091/api/v1
+    description: Local development backend
+
+security: []
+
+tags:
+  - name: Tasks
+  - name: Preferences
+
+paths:
+  /tasks:
+    get:
+      tags: [Tasks]
+      operationId: listTasks
+      summary: List every task in board order
+      description: Filtering the returned items by column preserves their display order.
+      responses:
+        "200":
+          description: Current tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskList"
+    post:
+      tags: [Tasks]
+      operationId: createTask
+      summary: Create a task at the top of To Do
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskCreate"
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /tasks/{taskId}:
+    parameters:
+      - $ref: "#/components/parameters/TaskId"
+    patch:
+      tags: [Tasks]
+      operationId: updateTask
+      summary: Edit a task without changing its position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Tasks]
+      operationId: deleteTask
+      summary: Permanently delete a task
+      responses:
+        "204":
+          description: Task deleted
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+
+  /tasks/{taskId}/placement:
+    parameters:
+      - $ref: "#/components/parameters/TaskId"
+    put:
+      tags: [Tasks]
+      operationId: placeTask
+      summary: Move or reorder a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskPlacement"
+      responses:
+        "200":
+          description: Canonical task state after the move
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /preferences:
+    get:
+      tags: [Preferences]
+      operationId: getPreferences
+      summary: Get board display preferences
+      responses:
+        "200":
+          description: Current preferences, or defaults when none have been saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+    put:
+      tags: [Preferences]
+      operationId: replacePreferences
+      summary: Replace board display preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Preferences"
+      responses:
+        "200":
+          description: Preferences saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+components:
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      description: Stable task identifier
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    BadRequest:
+      description: The request body is not valid JSON
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TaskNotFound:
+      description: No task has the supplied identifier
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ValidationError:
+      description: The request is well-formed but contains invalid values
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Column:
+      type: string
+      enum: [todo, doing, done]
+
+    Priority:
+      type: string
+      enum: [low, medium, high]
+      default: medium
+
+    Theme:
+      type: string
+      enum: [cathode, daylight, midnight]
+      default: cathode
+
+    NullableDate:
+      description: Calendar date without a time, or null when no due date is set
+      anyOf:
+        - type: string
+          format: date
+        - type: "null"
+
+    Task:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - description
+        - priority
+        - dueDate
+        - column
+        - createdAt
+      properties:
+        id:
+          type: string
+          minLength: 1
+          readOnly: true
+        title:
+          type: string
+          minLength: 1
+          pattern: ".*\\S.*"
+          description: Trimmed plain text containing at least one non-whitespace character
+        description:
+          type: string
+        priority:
+          $ref: "#/components/schemas/Priority"
+        dueDate:
+          $ref: "#/components/schemas/NullableDate"
+        column:
+          $ref: "#/components/schemas/Column"
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+          readOnly: true
+
+    TaskList:
+      type: array
+      description: Canonical order; filtering by column gives that column's card order.
+      items:
+        $ref: "#/components/schemas/Task"
+
+    TaskCreate:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          pattern: ".*\\S.*"
+          description: Trimmed plain text containing at least one non-whitespace character
+        description:
+          type: string
+          default: ""
+        priority:
+          $ref: "#/components/schemas/Priority"
+        dueDate:
+          allOf:
+            - $ref: "#/components/schemas/NullableDate"
+          default: null
+
+    TaskUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+          pattern: ".*\\S.*"
+          description: Trimmed plain text containing at least one non-whitespace character
+        description:
+          type: string
+        priority:
+          $ref: "#/components/schemas/Priority"
+        dueDate:
+          $ref: "#/components/schemas/NullableDate"
+
+    TaskPlacement:
+      type: object
+      additionalProperties: false
+      required: [column, index]
+      properties:
+        column:
+          $ref: "#/components/schemas/Column"
+        index:
+          type: integer
+          minimum: 0
+          description: |
+            Zero-based final position in the destination column. An index beyond
+            the current end places the task last.
+
+    Preferences:
+      type: object
+      additionalProperties: false
+      required: [theme, compact]
+      properties:
+        theme:
+          $ref: "#/components/schemas/Theme"
+        compact:
+          type: boolean
+          default: false
+
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          examples: [validation_error]
+        message:
+          type: string
+          examples: [The request could not be completed.]
