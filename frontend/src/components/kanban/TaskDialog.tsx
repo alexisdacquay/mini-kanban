@@ -94,7 +94,7 @@ export function TaskDialog({ open, task, onOpenChange, onSubmit }: Props) {
                 if (e.key === "Enter") submit();
               }}
             />
-            {error ? <p className="text-xs text-destructive">{error}</p> : null}
+            {error ? <p className="text-xs text-high">{error}</p> : null}
           </div>
 
           <div className="space-y-2">
