@@ -4,7 +4,7 @@ Mini Kanban is a small, single-user task board for learning how to build a usefu
 
 ## Status
 
-The first version is scoped and the Lovable-generated frontend is present in `frontend/`. It has not yet been installed or verified locally, so there are no confirmed install, run, build, or test commands to publish yet.
+The Lovable-generated frontend in `frontend/` has a verified local test, lint, and production-build workflow.
 
 ## Version 1 at a glance
 
@@ -49,9 +49,18 @@ frontend/                         Lovable-generated application
 README.md
 ```
 
-## Running locally
+## Verified local commands
 
-The scripts in `frontend/package.json` have not yet been verified in this checkout. Backlog task 1 establishes the testable project baseline; publish local commands here only after they have actually passed.
+Run these from the repository root:
+
+```sh
+cd frontend
+bun test
+bun run lint
+bun run build
+```
+
+To use the board locally, run `cd frontend && bun run dev` and open the local URL Vite prints. The board starts empty for a browser profile with no saved Mini Kanban data. Tasks, their column placement and order, and the selected theme are stored in that browser profile with `localStorage`.
 
 ## Local data and secrets
 

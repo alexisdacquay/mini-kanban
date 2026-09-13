@@ -78,7 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Mini Kanban" },
-      { name: "description", content: "A tiny three-column task board that lives in your browser." },
+      {
+        name: "description",
+        content: "A tiny three-column task board that lives in your browser.",
+      },
       { property: "og:title", content: "Mini Kanban" },
       {
         property: "og:description",
